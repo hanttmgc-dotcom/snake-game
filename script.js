@@ -42,6 +42,7 @@ let gameInterval = null;
 let nextFoodLevel = null;
 let level1EatCount = 0;
 let currentSpeed = 180;
+let pendingGrowth = 0;
 
 function startGame() {
   snake = [{ x: 10, y: 10 }];
@@ -57,6 +58,7 @@ function startGame() {
   nextFoodLevel = null;
   level1EatCount = 0;
   currentSpeed = foodTypes.find(type => type.level === 1).speed;
+  pendingGrowth = 0;
   scoreElement.textContent = score;
 }
 
@@ -108,6 +110,8 @@ function updateSnake() {
   score += eatenFoodType.points;
   scoreElement.textContent = score;
 
+  pendingGrowth += eatenFoodType.points - 1;
+
   if (eatenFoodType.level === 1) {
     level1EatCount++;
 
@@ -124,6 +128,8 @@ function updateSnake() {
 
   updateGameSpeed(eatenFoodType);
   createFood();
+} else if (pendingGrowth > 0) {
+  pendingGrowth--;
 } else {
   snake.pop();
 }
@@ -176,18 +182,22 @@ function createFood() {
     selectedFoodType = foodTypes.find(type => type.level === 1);
   }
 
+  let newFoodPosition;
+
+  do {
+    newFoodPosition = {
+      x: Math.floor(Math.random() * tileCount),
+      y: Math.floor(Math.random() * tileCount)
+    };
+  } while (
+    snake.some(part => part.x === newFoodPosition.x && part.y === newFoodPosition.y)
+  );
+
   food = {
-    x: Math.floor(Math.random() * tileCount),
-    y: Math.floor(Math.random() * tileCount),
+    x: newFoodPosition.x,
+    y: newFoodPosition.y,
     type: selectedFoodType
   };
-
-  for (let part of snake) {
-    if (part.x === food.x && part.y === food.y) {
-      createFood();
-      return;
-    }
-  }
 }
 
 function changeDirection(event) {
