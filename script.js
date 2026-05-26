@@ -12,19 +12,22 @@ const foodTypes = [
     level: 1,
     points: 1,
     size: 10,
-    color: "red"
+    color: "red",
+    speed: 180
   },
   {
     level: 3,
     points: 3,
     size: 15,
-    color: "orange"
+    color: "orange",
+    speed: 90
   },
   {
     level: 5,
     points: 5,
     size: 20,
-    color: "gold"
+    color: "gold",
+    speed: 120
   }
 ];
 
@@ -38,6 +41,7 @@ let gameStarted = false;
 let gameInterval = null;
 let nextFoodLevel = null;
 let level1EatCount = 0;
+let currentSpeed = 180;
 
 function startGame() {
   snake = [{ x: 10, y: 10 }];
@@ -52,6 +56,7 @@ function startGame() {
   gameOver = false;
   nextFoodLevel = null;
   level1EatCount = 0;
+  currentSpeed = foodTypes.find(type => type.level === 1).speed;
   scoreElement.textContent = score;
 }
 
@@ -66,6 +71,19 @@ function gameLoop() {
     gameInterval = null;
     return;
   }
+
+  function updateGameSpeed(eatenFoodType) {
+  if (score >= 100) {
+    currentSpeed = foodTypes.find(type => type.level === 3).speed;
+  } else {
+    currentSpeed = eatenFoodType.speed;
+  }
+
+  if (gameInterval) {
+    clearInterval(gameInterval);
+    gameInterval = setInterval(gameLoop, currentSpeed);
+  }
+}
 
   updateSnake();
 
@@ -85,23 +103,26 @@ function updateSnake() {
   snake.unshift(head);
 
   if (head.x === food.x && head.y === food.y) {
-  score += food.type.points;
+  const eatenFoodType = food.type;
+
+  score += eatenFoodType.points;
   scoreElement.textContent = score;
 
-  if (food.type.level === 1) {
+  if (eatenFoodType.level === 1) {
     level1EatCount++;
 
     if (level1EatCount >= 3) {
       nextFoodLevel = 3;
       level1EatCount = 0;
     }
-  } else if (food.type.level === 3) {
+  } else if (eatenFoodType.level === 3) {
     nextFoodLevel = 5;
-  } else if (food.type.level === 5) {
+  } else if (eatenFoodType.level === 5) {
     nextFoodLevel = null;
     level1EatCount = 0;
   }
 
+  updateGameSpeed(eatenFoodType);
   createFood();
 } else {
   snake.pop();
@@ -139,16 +160,6 @@ function drawFood() {
     food.y * gridSize + offset,
     foodSize,
     foodSize
-  );
-
-  ctx.fillStyle = "white";
-  ctx.font = "10px Arial";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(
-    food.type.level,
-    food.x * gridSize + gridSize / 2,
-    food.y * gridSize + gridSize / 2
   );
 }
 
@@ -240,7 +251,7 @@ document.addEventListener("keydown", changeDirection);
 startBtn.addEventListener("click", function () {
   if (!gameInterval) {
     gameStarted = true;
-    gameInterval = setInterval(gameLoop, 120);
+    gameInterval = setInterval(gameLoop, currentSpeed);
   }
 });
 
@@ -252,7 +263,7 @@ restartBtn.addEventListener("click", function () {
     clearInterval(gameInterval);
   }
 
-  gameInterval = setInterval(gameLoop, 120);
+  gameInterval = setInterval(gameLoop, currentSpeed);
 });
 
 startGame();
