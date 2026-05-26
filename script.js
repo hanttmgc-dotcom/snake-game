@@ -113,18 +113,20 @@ function updateSnake() {
   pendingGrowth += eatenFoodType.points - 1;
 
   if (eatenFoodType.level === 1) {
-    level1EatCount++;
+  level1EatCount++;
 
-    if (level1EatCount >= 3) {
-      nextFoodLevel = 3;
-      level1EatCount = 0;
-    }
-  } else if (eatenFoodType.level === 3) {
-    nextFoodLevel = 5;
-  } else if (eatenFoodType.level === 5) {
-    nextFoodLevel = null;
+  if (level1EatCount === 3) {
+    nextFoodLevel = 3;
     level1EatCount = 0;
+  } else {
+    nextFoodLevel = null;
   }
+} else if (eatenFoodType.level === 3) {
+  nextFoodLevel = 5;
+} else if (eatenFoodType.level === 5) {
+  nextFoodLevel = null;
+  level1EatCount = 0;
+}
 
   updateGameSpeed(eatenFoodType);
   createFood();
@@ -147,11 +149,14 @@ function drawSnake() {
   ctx.fillStyle = "lime";
 
   snake.forEach(part => {
+    const snakeSize = 14;
+    const offset = (gridSize - snakeSize) / 2;
+
     ctx.fillRect(
-      part.x * gridSize,
-      part.y * gridSize,
-      gridSize - 2,
-      gridSize - 2
+      part.x * gridSize + offset,
+      part.y * gridSize + offset,
+      snakeSize,
+      snakeSize
     );
   });
 }
@@ -170,17 +175,14 @@ function drawFood() {
 }
 
 function createFood() {
-  let selectedFoodType;
+  let selectedLevel = 1;
 
-  if (nextFoodLevel === 3) {
-    selectedFoodType = foodTypes.find(type => type.level === 3);
+  if (nextFoodLevel !== null) {
+    selectedLevel = nextFoodLevel;
     nextFoodLevel = null;
-  } else if (nextFoodLevel === 5) {
-    selectedFoodType = foodTypes.find(type => type.level === 5);
-    nextFoodLevel = null;
-  } else {
-    selectedFoodType = foodTypes.find(type => type.level === 1);
   }
+
+  const selectedFoodType = foodTypes.find(type => type.level === selectedLevel);
 
   let newFoodPosition;
 
