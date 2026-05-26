@@ -33,6 +33,7 @@ const foodTypes = [
 
 let snake;
 let food;
+let foods;
 let dx;
 let dy;
 let score;
@@ -41,6 +42,7 @@ let gameStarted = false;
 let gameInterval = null;
 let currentSpeed = 180;
 let pendingGrowth = 0;
+let nextBonusScore = 20;
 
 const foodLevelCycle = [1, 1, 1, 3, 5];
 let foodCycleIndex = 0;
@@ -56,15 +58,18 @@ function startGame() {
   dy = 0;
   score = 0;
   gameOver = false;
-  pendingGrowth = 0;
   foodCycleIndex = 0;
+  pendingGrowth = 0;
+  nextBonusScore = 20;
   currentSpeed = getFoodTypeByLevel(1).speed;
 
   food = {
     x: 5,
     y: 5,
-    type: getFoodTypeByLevel(1)
+    type: getFoodTypeByLevel(foodLevelCycle[foodCycleIndex])
   };
+
+  foods = [food];
 
   scoreElement.textContent = score;
 }
@@ -121,22 +126,33 @@ function updateSnake() {
 
   snake.unshift(head);
 
-  if (head.x === food.x && head.y === food.y) {
-    const eatenFoodType = food.type;
+  const eatenFoodIndex = foods.findIndex(item => {
+  return head.x === item.x && head.y === item.y;
+});
+
+if (eatenFoodIndex !== -1) {
+  const eatenFood = foods[eatenFoodIndex];
+  const eatenFoodType = eatenFood.type;
 
     score += eatenFoodType.points;
     scoreElement.textContent = score;
 
     pendingGrowth += eatenFoodType.points - 1;
 
-    foodCycleIndex++;
+foodCycleIndex++;
 
 if (foodCycleIndex >= foodLevelCycle.length) {
   foodCycleIndex = 0;
 }
 
 updateGameSpeed(eatenFoodType);
-createFood();
+
+if (score >= nextBonusScore) {
+  createBonusFoods();
+  nextBonusScore += 20;
+} else {
+  createFood();
+}
   } else if (pendingGrowth > 0) {
     pendingGrowth--;
   } else {
@@ -169,12 +185,51 @@ function createFood() {
   const newFoodPosition = availableCells[randomIndex];
 
   food = {
-    x: newFoodPosition.x,
-    y: newFoodPosition.y,
-    type: selectedFoodType
-  };
-}
+  x: newFoodPosition.x,
+  y: newFoodPosition.y,
+  type: selectedFoodType
+};
 
+foods = [food];
+}
+function createBonusFoods() {
+  const bonusLevels = [1, 3, 5];
+  const newFoods = [];
+
+  bonusLevels.forEach(level => {
+    const selectedFoodType = getFoodTypeByLevel(level);
+
+    const availableCells = [];
+
+    for (let y = 0; y < tileCount; y++) {
+      for (let x = 0; x < tileCount; x++) {
+        const isOnSnake = snake.some(part => part.x === x && part.y === y);
+        const isOnOtherFood = newFoods.some(item => item.x === x && item.y === y);
+
+        if (!isOnSnake && !isOnOtherFood) {
+          availableCells.push({ x, y });
+        }
+      }
+    }
+
+    if (availableCells.length === 0) {
+      gameOver = true;
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * availableCells.length);
+    const newFoodPosition = availableCells[randomIndex];
+
+    newFoods.push({
+      x: newFoodPosition.x,
+      y: newFoodPosition.y,
+      type: selectedFoodType
+    });
+  });
+
+  foods = newFoods;
+  food = foods[0];
+}
 function drawGame() {
   ctx.fillStyle = "#222";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -200,16 +255,18 @@ function drawSnake() {
 }
 
 function drawFood() {
-  const foodSize = food.type.size;
-  const offset = (gridSize - foodSize) / 2;
+  foods.forEach(item => {
+    const foodSize = item.type.size;
+    const offset = (gridSize - foodSize) / 2;
 
-  ctx.fillStyle = food.type.color;
-  ctx.fillRect(
-    food.x * gridSize + offset,
-    food.y * gridSize + offset,
-    foodSize,
-    foodSize
-  );
+    ctx.fillStyle = item.type.color;
+    ctx.fillRect(
+      item.x * gridSize + offset,
+      item.y * gridSize + offset,
+      foodSize,
+      foodSize
+    );
+  });
 }
 
 function changeDirection(event) {
