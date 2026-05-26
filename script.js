@@ -7,6 +7,27 @@ const restartBtn = document.getElementById("restartBtn");
 const gridSize = 20;
 const tileCount = canvas.width / gridSize;
 
+const foodTypes = [
+  {
+    level: 1,
+    points: 1,
+    size: 10,
+    color: "red"
+  },
+  {
+    level: 3,
+    points: 3,
+    size: 15,
+    color: "orange"
+  },
+  {
+    level: 5,
+    points: 5,
+    size: 20,
+    color: "gold"
+  }
+];
+
 let snake;
 let food;
 let dx;
@@ -15,14 +36,22 @@ let score;
 let gameOver;
 let gameStarted = false;
 let gameInterval = null;
+let nextFoodLevel = null;
+let level1EatCount = 0;
 
 function startGame() {
   snake = [{ x: 10, y: 10 }];
-  food = { x: 5, y: 5 };
+  food = {
+    x: 5,
+    y: 5,
+    type: foodTypes[0]
+  };
   dx = 1;
   dy = 0;
   score = 0;
   gameOver = false;
+  nextFoodLevel = null;
+  level1EatCount = 0;
   scoreElement.textContent = score;
 }
 
@@ -56,12 +85,27 @@ function updateSnake() {
   snake.unshift(head);
 
   if (head.x === food.x && head.y === food.y) {
-    score++;
-    scoreElement.textContent = score;
-    createFood();
-  } else {
-    snake.pop();
+  score += food.type.points;
+  scoreElement.textContent = score;
+
+  if (food.type.level === 1) {
+    level1EatCount++;
+
+    if (level1EatCount >= 3) {
+      nextFoodLevel = 3;
+      level1EatCount = 0;
+    }
+  } else if (food.type.level === 3) {
+    nextFoodLevel = 5;
+  } else if (food.type.level === 5) {
+    nextFoodLevel = null;
+    level1EatCount = 0;
   }
+
+  createFood();
+} else {
+  snake.pop();
+}
 }
 
 function drawGame() {
@@ -86,19 +130,45 @@ function drawSnake() {
 }
 
 function drawFood() {
-  ctx.fillStyle = "red";
+  const foodSize = food.type.size;
+  const offset = (gridSize - foodSize) / 2;
+
+  ctx.fillStyle = food.type.color;
   ctx.fillRect(
-    food.x * gridSize,
-    food.y * gridSize,
-    gridSize - 2,
-    gridSize - 2
+    food.x * gridSize + offset,
+    food.y * gridSize + offset,
+    foodSize,
+    foodSize
+  );
+
+  ctx.fillStyle = "white";
+  ctx.font = "10px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(
+    food.type.level,
+    food.x * gridSize + gridSize / 2,
+    food.y * gridSize + gridSize / 2
   );
 }
 
 function createFood() {
+  let selectedFoodType;
+
+  if (nextFoodLevel === 3) {
+    selectedFoodType = foodTypes.find(type => type.level === 3);
+    nextFoodLevel = null;
+  } else if (nextFoodLevel === 5) {
+    selectedFoodType = foodTypes.find(type => type.level === 5);
+    nextFoodLevel = null;
+  } else {
+    selectedFoodType = foodTypes.find(type => type.level === 1);
+  }
+
   food = {
     x: Math.floor(Math.random() * tileCount),
-    y: Math.floor(Math.random() * tileCount)
+    y: Math.floor(Math.random() * tileCount),
+    type: selectedFoodType
   };
 
   for (let part of snake) {
