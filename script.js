@@ -44,21 +44,28 @@ let level1EatCount = 0;
 let currentSpeed = 180;
 let pendingGrowth = 0;
 
+function getFoodTypeByLevel(level) {
+  return foodTypes.find(type => type.level === level);
+}
+
 function startGame() {
   snake = [{ x: 10, y: 10 }];
-  food = {
-    x: 5,
-    y: 5,
-    type: foodTypes[0]
-  };
+
   dx = 1;
   dy = 0;
   score = 0;
   gameOver = false;
   nextFoodLevel = null;
   level1EatCount = 0;
-  currentSpeed = foodTypes.find(type => type.level === 1).speed;
   pendingGrowth = 0;
+  currentSpeed = getFoodTypeByLevel(1).speed;
+
+  food = {
+    x: 5,
+    y: 5,
+    type: getFoodTypeByLevel(1)
+  };
+
   scoreElement.textContent = score;
 }
 
@@ -69,23 +76,9 @@ function gameLoop() {
 
   if (gameOver) {
     drawGameOver();
-    clearInterval(gameInterval);
-    gameInterval = null;
+    stopGameLoop();
     return;
   }
-
-  function updateGameSpeed(eatenFoodType) {
-  if (score >= 100) {
-    currentSpeed = foodTypes.find(type => type.level === 3).speed;
-  } else {
-    currentSpeed = eatenFoodType.speed;
-  }
-
-  if (gameInterval) {
-    clearInterval(gameInterval);
-    gameInterval = setInterval(gameLoop, currentSpeed);
-  }
-}
 
   updateSnake();
 
@@ -94,6 +87,30 @@ function gameLoop() {
   }
 
   drawGame();
+}
+
+function startGameLoop() {
+  stopGameLoop();
+  gameInterval = setInterval(gameLoop, currentSpeed);
+}
+
+function stopGameLoop() {
+  if (gameInterval) {
+    clearInterval(gameInterval);
+    gameInterval = null;
+  }
+}
+
+function updateGameSpeed(eatenFoodType) {
+  if (score >= 100) {
+    currentSpeed = getFoodTypeByLevel(3).speed;
+  } else {
+    currentSpeed = eatenFoodType.speed;
+  }
+
+  if (gameStarted) {
+    startGameLoop();
+  }
 }
 
 function updateSnake() {
@@ -105,44 +122,84 @@ function updateSnake() {
   snake.unshift(head);
 
   if (head.x === food.x && head.y === food.y) {
-  const eatenFoodType = food.type;
+    const eatenFoodType = food.type;
 
-  score += eatenFoodType.points;
-  scoreElement.textContent = score;
+    score += eatenFoodType.points;
+    scoreElement.textContent = score;
 
-  pendingGrowth += eatenFoodType.points - 1;
+    pendingGrowth += eatenFoodType.points - 1;
 
-  if (eatenFoodType.level === 1) {
-  level1EatCount++;
-
-  if (level1EatCount === 3) {
-    nextFoodLevel = 3;
-    level1EatCount = 0;
+    updateNextFoodLevel(eatenFoodType);
+    updateGameSpeed(eatenFoodType);
+    createFood();
+  } else if (pendingGrowth > 0) {
+    pendingGrowth--;
   } else {
+    snake.pop();
+  }
+}
+
+function updateNextFoodLevel(eatenFoodType) {
+  if (eatenFoodType.level === 1) {
+    level1EatCount++;
+
+    if (level1EatCount >= 3) {
+      nextFoodLevel = 3;
+      level1EatCount = 0;
+    } else {
+      nextFoodLevel = null;
+    }
+  } else if (eatenFoodType.level === 3) {
+    nextFoodLevel = 5;
+  } else if (eatenFoodType.level === 5) {
+    nextFoodLevel = null;
+    level1EatCount = 0;
+  }
+}
+
+function createFood() {
+  let selectedLevel = 1;
+
+  if (nextFoodLevel !== null) {
+    selectedLevel = nextFoodLevel;
     nextFoodLevel = null;
   }
-} else if (eatenFoodType.level === 3) {
-  nextFoodLevel = 5;
-} else if (eatenFoodType.level === 5) {
-  nextFoodLevel = null;
-  level1EatCount = 0;
-}
 
-  updateGameSpeed(eatenFoodType);
-  createFood();
-} else if (pendingGrowth > 0) {
-  pendingGrowth--;
-} else {
-  snake.pop();
-}
+  const selectedFoodType = getFoodTypeByLevel(selectedLevel);
+
+  const availableCells = [];
+
+  for (let y = 0; y < tileCount; y++) {
+    for (let x = 0; x < tileCount; x++) {
+      const isOnSnake = snake.some(part => part.x === x && part.y === y);
+
+      if (!isOnSnake) {
+        availableCells.push({ x, y });
+      }
+    }
+  }
+
+  if (availableCells.length === 0) {
+    gameOver = true;
+    return;
+  }
+
+  const randomIndex = Math.floor(Math.random() * availableCells.length);
+  const newFoodPosition = availableCells[randomIndex];
+
+  food = {
+    x: newFoodPosition.x,
+    y: newFoodPosition.y,
+    type: selectedFoodType
+  };
 }
 
 function drawGame() {
   ctx.fillStyle = "#222";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  drawFood();
   drawSnake();
+  drawFood();
 }
 
 function drawSnake() {
@@ -172,34 +229,6 @@ function drawFood() {
     foodSize,
     foodSize
   );
-}
-
-function createFood() {
-  let selectedLevel = 1;
-
-  if (nextFoodLevel !== null) {
-    selectedLevel = nextFoodLevel;
-    nextFoodLevel = null;
-  }
-
-  const selectedFoodType = foodTypes.find(type => type.level === selectedLevel);
-
-  let newFoodPosition;
-
-  do {
-    newFoodPosition = {
-      x: Math.floor(Math.random() * tileCount),
-      y: Math.floor(Math.random() * tileCount)
-    };
-  } while (
-    snake.some(part => part.x === newFoodPosition.x && part.y === newFoodPosition.y)
-  );
-
-  food = {
-    x: newFoodPosition.x,
-    y: newFoodPosition.y,
-    type: selectedFoodType
-  };
 }
 
 function changeDirection(event) {
@@ -261,21 +290,17 @@ function drawGameOver() {
 document.addEventListener("keydown", changeDirection);
 
 startBtn.addEventListener("click", function () {
-  if (!gameInterval) {
+  if (!gameStarted) {
     gameStarted = true;
-    gameInterval = setInterval(gameLoop, currentSpeed);
+    startGameLoop();
   }
 });
 
 restartBtn.addEventListener("click", function () {
   startGame();
   gameStarted = true;
-
-  if (gameInterval) {
-    clearInterval(gameInterval);
-  }
-
-  gameInterval = setInterval(gameLoop, currentSpeed);
+  startGameLoop();
+  drawGame();
 });
 
 startGame();
