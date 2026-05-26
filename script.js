@@ -1,6 +1,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const scoreElement = document.getElementById("score");
+const startBtn = document.getElementById("startBtn");
 const restartBtn = document.getElementById("restartBtn");
 
 const gridSize = 20;
@@ -12,6 +13,7 @@ let dx;
 let dy;
 let score;
 let gameOver;
+let gameStarted = false;
 
 function startGame() {
   snake = [{ x: 10, y: 10 }];
@@ -23,7 +25,11 @@ function startGame() {
   scoreElement.textContent = score;
 }
 
-function gameLoop() {
+function gamefunction gameLoop() {
+  if (!gameStarted) {
+    return;
+  }
+
   if (gameOver) {
     drawGameOver();
     return;
@@ -160,10 +166,18 @@ function drawGameOver() {
 
 document.addEventListener("keydown", changeDirection);
 
+startBtn.addEventListener("click", function () {
+  if (!gameStarted) {
+    gameStarted = true;
+    gameLoop();
+  }
+});
+
 restartBtn.addEventListener("click", function () {
   startGame();
+  gameStarted = true;
   gameLoop();
 });
 
 startGame();
-gameLoop();
+drawGame();
