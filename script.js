@@ -43,6 +43,8 @@ let gameInterval = null;
 let currentSpeed = 180;
 let pendingGrowth = 0;
 let nextBonusScore = 20;
+let bonusActive = false;
+let bonusTimeout = null;
 
 const foodLevelCycle = [1, 1, 1, 3, 5];
 let foodCycleIndex = 0;
@@ -57,11 +59,18 @@ function startGame() {
   dx = 1;
   dy = 0;
   score = 0;
-  gameOver = false;
-  foodCycleIndex = 0;
-  pendingGrowth = 0;
-  nextBonusScore = 20;
-  currentSpeed = getFoodTypeByLevel(1).speed;
+gameOver = false;
+foodCycleIndex = 0;
+pendingGrowth = 0;
+nextBonusScore = 20;
+bonusActive = false;
+
+if (bonusTimeout) {
+  clearTimeout(bonusTimeout);
+  bonusTimeout = null;
+}
+
+currentSpeed = getFoodTypeByLevel(1).speed;
 
   food = {
     x: 5,
@@ -138,6 +147,20 @@ if (eatenFoodIndex !== -1) {
     scoreElement.textContent = score;
 
     pendingGrowth += eatenFoodType.points - 1;
+
+if (bonusActive) {
+  bonusActive = false;
+
+  if (bonusTimeout) {
+    clearTimeout(bonusTimeout);
+    bonusTimeout = null;
+  }
+
+  foodCycleIndex = 0;
+  updateGameSpeed(eatenFoodType);
+  createFood();
+  return;
+}
 
 foodCycleIndex++;
 
@@ -228,7 +251,25 @@ function createBonusFoods() {
   });
 
   foods = newFoods;
-  food = foods[0];
+food = foods[0];
+bonusActive = true;
+
+if (bonusTimeout) {
+  clearTimeout(bonusTimeout);
+}
+
+bonusTimeout = setTimeout(expireBonusFoods, 6000);
+
+}
+function expireBonusFoods() {
+  if (!bonusActive) {
+    return;
+  }
+
+  bonusActive = false;
+  bonusTimeout = null;
+  foodCycleIndex = 0;
+  createFood();
 }
 function drawGame() {
   ctx.fillStyle = "#222";
