@@ -14,6 +14,7 @@ let dy;
 let score;
 let gameOver;
 let gameStarted = false;
+let gameInterval = null;
 
 function startGame() {
   snake = [{ x: 10, y: 10 }];
@@ -25,13 +26,15 @@ function startGame() {
   scoreElement.textContent = score;
 }
 
-function gamefunction gameLoop() {
+function gameLoop() {
   if (!gameStarted) {
     return;
   }
 
   if (gameOver) {
     drawGameOver();
+    clearInterval(gameInterval);
+    gameInterval = null;
     return;
   }
 
@@ -42,8 +45,6 @@ function gamefunction gameLoop() {
   }
 
   drawGame();
-
-  setTimeout(gameLoop, 120);
 }
 
 function updateSnake() {
@@ -167,16 +168,21 @@ function drawGameOver() {
 document.addEventListener("keydown", changeDirection);
 
 startBtn.addEventListener("click", function () {
-  if (!gameStarted) {
+  if (!gameInterval) {
     gameStarted = true;
-    gameLoop();
+    gameInterval = setInterval(gameLoop, 120);
   }
 });
 
 restartBtn.addEventListener("click", function () {
   startGame();
   gameStarted = true;
-  gameLoop();
+
+  if (gameInterval) {
+    clearInterval(gameInterval);
+  }
+
+  gameInterval = setInterval(gameLoop, 120);
 });
 
 startGame();
