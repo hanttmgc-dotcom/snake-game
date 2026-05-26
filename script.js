@@ -39,10 +39,11 @@ let score;
 let gameOver;
 let gameStarted = false;
 let gameInterval = null;
-let nextFoodLevel = null;
-let level1EatCount = 0;
 let currentSpeed = 180;
 let pendingGrowth = 0;
+
+const foodLevelCycle = [1, 1, 1, 3, 5];
+let foodCycleIndex = 0;
 
 function getFoodTypeByLevel(level) {
   return foodTypes.find(type => type.level === level);
@@ -55,9 +56,8 @@ function startGame() {
   dy = 0;
   score = 0;
   gameOver = false;
-  nextFoodLevel = null;
-  level1EatCount = 0;
   pendingGrowth = 0;
+  foodCycleIndex = 0;
   currentSpeed = getFoodTypeByLevel(1).speed;
 
   food = {
@@ -129,9 +129,14 @@ function updateSnake() {
 
     pendingGrowth += eatenFoodType.points - 1;
 
-    updateNextFoodLevel(eatenFoodType);
-    updateGameSpeed(eatenFoodType);
-    createFood();
+    foodCycleIndex++;
+
+if (foodCycleIndex >= foodLevelCycle.length) {
+  foodCycleIndex = 0;
+}
+
+updateGameSpeed(eatenFoodType);
+createFood();
   } else if (pendingGrowth > 0) {
     pendingGrowth--;
   } else {
@@ -139,32 +144,8 @@ function updateSnake() {
   }
 }
 
-function updateNextFoodLevel(eatenFoodType) {
-  if (eatenFoodType.level === 1) {
-    level1EatCount++;
-
-    if (level1EatCount >= 3) {
-      nextFoodLevel = 3;
-      level1EatCount = 0;
-    } else {
-      nextFoodLevel = null;
-    }
-  } else if (eatenFoodType.level === 3) {
-    nextFoodLevel = 5;
-  } else if (eatenFoodType.level === 5) {
-    nextFoodLevel = null;
-    level1EatCount = 0;
-  }
-}
-
 function createFood() {
-  let selectedLevel = 1;
-
-  if (nextFoodLevel !== null) {
-    selectedLevel = nextFoodLevel;
-    nextFoodLevel = null;
-  }
-
+  const selectedLevel = foodLevelCycle[foodCycleIndex];
   const selectedFoodType = getFoodTypeByLevel(selectedLevel);
 
   const availableCells = [];
